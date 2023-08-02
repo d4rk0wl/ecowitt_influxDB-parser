@@ -1,2 +1,1 @@
-# ecowitt_influxDB-parser
-Simple NodeJS application to recieve data from EcoWitt connected devices and write to InfluxDB
+Simple NodeJS application to receive data from Ecowitt connected devices and write to InfluxDB.
