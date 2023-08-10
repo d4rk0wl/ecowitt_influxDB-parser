@@ -5,11 +5,17 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 
+//Custom modules import
+const telegram = require('./controllers/telegram')
+
+//Import APRS extension
+const APRS = require('./controllers/aprs');
+
 //Setting to ignore self-signed CA on InfluxDB Server - Maybe dangerous
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 const app = express()
-const port = 3000
+const port = 9091
 
 //EcoWitt protocol uses URLEncoded form data
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -21,8 +27,11 @@ app.post('/report', (req, res) => {
     const org = process.env.INFLUX_ORG
     const bucket = process.env.INFLUX_BUCKET
 
-    //Destructure POST request
+    //Destructure POST request and write to buffer
     const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = req.body
+    telegram.writeBuffer(req.body)
+
+    console.log(req.body)
 
     //Create InfluxDB points and assign array
     const pointsArray = [
@@ -52,9 +61,12 @@ app.post('/report', (req, res) => {
             //Create InfluxDB connection
             const writeApi = new InfluxDB({ url, token }).getWriteApi(org, bucket, 's')
 
+            //Generate APRS packet
+            APRS.createPkt('testing')
+
             //Write data and close connection
             await writeApi.writePoints(pointsArray)
-            await writeApi.close()
+            writeApi.close()
             return
         } catch(err) {
             throw new Error(err)
@@ -67,9 +79,13 @@ app.post('/report', (req, res) => {
     .catch((err) => {
         fs.appendFileSync(__dirname + '/Logs/Err_Log.txt', `\n${new Date().toString()} - ${err}`)
         res.status(500).send(`${err}`)
-    })
+    });
 
 });
+
+app.get('/healthcheck', (req, res) => {
+    res.send('OK')
+})
 
 app.listen(port, () => {
     console.log('App Running')

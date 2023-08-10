@@ -1,0 +1,15 @@
+[Unit]
+Description=Simple NodeJS server to parse incoming Ecowitt messages
+Documentation=https://github.com/d4rk0wl/ecowitt_influxDB-parser/
+After=network-online.target
+
+[Service]
+User= #NON-ROOT USER#
+Group= #NON-ROOT GROUP#
+EnvironmentFile= #PATH TO YOUR ENVIRONMENT VARIABLE#
+ExecStart= #PATH TO NODE EXECUTABLE AND SERVER.JS FILE#
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=weather-api.service

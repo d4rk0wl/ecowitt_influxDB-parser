@@ -1,0 +1,26 @@
+{
+    "Time": "2023-08-10T00:00:01Z-7", 
+    "Temperature": {
+        "Outdoors": 95.1,
+        "Kitchen": 90.7,
+        "LivingRoom": 89.7,
+        "Office": 88,
+        "Bedroom": 89.4
+    },
+    "Humidity": {
+        "Outdoors": 23,
+        "Kitchen": 20,
+        "LivingRoom": 10,
+        "Office": 15,
+        "Bedroom": 25
+    },
+    "WindDirection": 340,
+    "WindSpeed": 2,
+    "WindGust": 8,
+    "SolarRadiation": 395,
+    "UV": 9,
+    "RainRate": 0,
+    "DailyRain": 0,
+    "CapacitorVoltage": 4.7,
+    "BatteryVoltage": 3.2
+}
