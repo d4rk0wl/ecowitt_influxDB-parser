@@ -1,1 +1,1 @@
-Simple NodeJS application to receive data from Ecowitt connected devices and write to InfluxDB. I will write this readme eventually.
+Simple NodeJS application to receive data from Ecowitt connected devices and write to InfluxDB. I will write this readme eventually. Updated readme for TelegramBot
