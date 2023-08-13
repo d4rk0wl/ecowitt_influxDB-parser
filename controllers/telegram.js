@@ -1,15 +1,17 @@
 const TelegramBot = require('node-telegram-bot-api');
 const AsciiTable = require('ascii-table');
+const fetch = require('node-fetch')
 const fs = require('fs');
 
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, {polling: {interval: 5000}});
 
-const writeBuffer = (data) => {
+const writeBuffer = (measurements) => {
     const date = new Date()
-    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = data
 
-    fs.writeFileSync('../Buffer/last.json', {
-        "Time": date.toDateString(), 
+    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = measurements
+
+    const bufferData = {
+        "Time": date.toISOString(), 
         "Temperature": {
             "Outdoors": tempf,
             "Kitchen": temp1f,
@@ -33,21 +35,17 @@ const writeBuffer = (data) => {
         "DailyRain": drain_piezo,
         "CapacitorVoltage": ws90cap_volt,
         "BatteryVoltage": wh90batt
-    }, (err) => console.log(err))
+    }
+
+    fs.writeFileSync(__dirname + '/../Buffer/last.json', JSON.stringify(bufferData), (err) => console.log(err))
 }
 
 const generateReport = (options) => {
-    let table = new AsciiTable('Weather Report')
-    table.setHeading('Metric', 'Location', 'Value')
-
     data = JSON.parse(fs.readFileSync(__dirname + '/../Buffer/last.json', {encoding: 'utf-8', flag: 'r'}));
+    date = new Date(data.Time)
 
-    const addTime = () => {
-        let date = new Date();
-        let currHour = date.getHours()
-        let currMin = date.getMinutes()
-        table.addRow('Time', `${date.toDateString()}`, `${currHour}:${currMin}`)
-    }
+    let table = new AsciiTable(`Weather Report - ${date.toLocaleString('en-US')}`)
+    table.setHeading('Metric', 'Location', 'Value')
 
     const addTemperature = () => {
         table.addRow('Temperature', 'Outdoors', `${data.Temperature.Outdoors}\xB0F`)
@@ -89,7 +87,6 @@ const generateReport = (options) => {
     return new Promise((Resolve, Reject) => {
         switch(options) {
             case 'all':
-                addTime()
                 addTemperature()
                 addHumidity()
                 addWind()
@@ -110,6 +107,58 @@ const generateReport = (options) => {
     })
 }
 
+const generateForecast = async (options) => {
+    try {
+        const APIUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${process.env.OLAT}&lon=${process.env.OLON}&appid=${process.env.OAPIKEY}&units=imperial&exclude=hourly,minutely,current`
+        const response = await fetch(APIUrl)
+        var data = await response.json()
+    } catch(error) {
+        return(`Unable to query remote API server - ${error}`)
+    }
+
+    try {
+        let type = options.charAt(0).toUpperCase() + options.slice(1)
+
+        let table = new AsciiTable(`Weather Forecast - ${type}`)
+    
+        switch(type) {
+            case 'Summary':
+                table.setHeading('Date', 'Summary')
+                data.daily.forEach((day) => {
+                    let date = new Date(day.dt * 1000)
+                    table.addRow(date.toLocaleDateString("en-US"), day.summary)
+                })
+                return table
+                break;
+            case 'Daylight':
+                table.setHeading('Date', 'Sunrise','Sunset', 'Total Daylight')
+                data.daily.forEach((day) => {
+                    let date = new Date(day.dt * 1000)
+                    let sunrise = new Date(day.sunrise * 1000)
+                    let sunset = new Date(day.sunset * 1000)
+                    let total = new Date(Math.abs(sunset - sunrise))
+
+                    table.addRow(`${date.toLocaleDateString("en-US")}`, sunrise.toLocaleTimeString("en-US"), sunset.toLocaleTimeString("en-US"), 'eventually')
+                })
+                return table
+                break;
+            case "Temps":
+                table.setHeading('Date', 'High', 'Low', 'Sky')
+                data.daily.forEach((day) => {
+                    let date = new Date(day.dt * 1000)
+                    table.addRow(date.toLocaleDateString("en-US"), day.temp.max, day.temp.min, day.weather[0].description)
+                })
+                return table
+                break;
+            default:
+                return "Invalid option"
+    
+        }
+    } catch(error) {
+        return(`Unable to build table - ${error}`)
+    }
+}
+
 bot.on('message', (msg) => {
     const chatId = msg.chat.id
 
@@ -122,9 +171,10 @@ bot.on('message', (msg) => {
         }
     }
 
-    const sendForecast = async () => {
+    const sendForecast = async (options) => {
         try {
-            bot.sendMessage(chatId, 'Forecast code will eventually go here')
+            let forecast  = await generateForecast(options)
+            bot.sendMessage(chatId, `<pre>${forecast}</pre>`, {parse_mode: "html"})
         } catch(error) {
             bot.sendMessage(chatId, `${error}`)
         }
@@ -132,17 +182,19 @@ bot.on('message', (msg) => {
 
     let command = msg.text.split(" ")
 
-    switch(command[0]) {
-        case 'Report':
+    switch(command[0].charAt(0).toLowerCase() + command[0].slice(1)) {
         case 'report':
             sendReport(command[1])
             break;
-        case 'Forecast':
         case 'forecast':
-            sendForecast()
+            sendForecast(command[1])
+            break;
+        case 'help':
+            bot.sendMessage(chatId, 'This is the future location of the bot help file')
             break;
         default:
             bot.sendMessage(chatId, 'Invalid command')
+            break;
     }
 
 })

@@ -5,11 +5,11 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 
+//Let Local Timezone
+process.env.TZ = 'America/Los_Angeles'
+
 //Custom modules import
 const telegram = require('./controllers/telegram')
-
-//Import APRS extension
-const APRS = require('./controllers/aprs');
 
 //Setting to ignore self-signed CA on InfluxDB Server - Maybe dangerous
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
@@ -21,6 +21,7 @@ const port = 9091
 app.use(bodyParser.urlencoded({ extended: true }))
 
 app.post('/report', (req, res) => {
+
     //InfluxDB Environment Variables
     const url = process.env.INFLUX_HOST
     const token = process.env.INFLUX_TOKEN
@@ -30,8 +31,6 @@ app.post('/report', (req, res) => {
     //Destructure POST request and write to buffer
     const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = req.body
     telegram.writeBuffer(req.body)
-
-    console.log(req.body)
 
     //Create InfluxDB points and assign array
     const pointsArray = [
@@ -61,11 +60,9 @@ app.post('/report', (req, res) => {
             //Create InfluxDB connection
             const writeApi = new InfluxDB({ url, token }).getWriteApi(org, bucket, 's')
 
-            //Generate APRS packet
-            APRS.createPkt('testing')
-
             //Write data and close connection
             await writeApi.writePoints(pointsArray)
+            console.log('here')
             writeApi.close()
             return
         } catch(err) {
