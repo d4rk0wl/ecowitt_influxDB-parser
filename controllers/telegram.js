@@ -131,14 +131,14 @@ const generateForecast = async (options) => {
                 return table
                 break;
             case 'Daylight':
-                table.setHeading('Date', 'Sunrise','Sunset', 'Total Daylight')
+                table.setHeading('Date', 'Sunrise','Sunset', 'Total Day')
                 data.daily.forEach((day) => {
                     let date = new Date(day.dt * 1000)
                     let sunrise = new Date(day.sunrise * 1000)
                     let sunset = new Date(day.sunset * 1000)
-                    let total = new Date(Math.abs(sunset - sunrise))
+                    let total = (((sunset - sunrise)  / 3600) / 1000).toFixed(1)
 
-                    table.addRow(`${date.toLocaleDateString("en-US")}`, sunrise.toLocaleTimeString("en-US"), sunset.toLocaleTimeString("en-US"), 'eventually')
+                    table.addRow(`${date.toLocaleDateString("en-US")}`, sunrise.toLocaleTimeString("en-US"), sunset.toLocaleTimeString("en-US"), `${total} hours`)
                 })
                 return table
                 break;
@@ -180,20 +180,29 @@ bot.on('message', (msg) => {
         }
     }
 
+    const sendHelp = async () => {
+        try {
+            const helpText = await fs.readFileSync(__dirname + '/bot-help.html', {encoding: 'utf-8', flag: 'r'})
+            bot.sendMessage(chatId, helpText, {parse_mode: "HTML"})
+        } catch(error) {
+            bot.sendMessage(chatId, `${error}`)
+        }
+    }
+
     let command = msg.text.split(" ")
 
-    switch(command[0].charAt(0).toLowerCase() + command[0].slice(1)) {
-        case 'report':
+    switch(command[0].charAt(0).toUpperCase() + command[0].slice(1)) {
+        case 'Report':
             sendReport(command[1])
             break;
-        case 'forecast':
+        case 'Forecast':
             sendForecast(command[1])
             break;
-        case 'help':
-            bot.sendMessage(chatId, 'This is the future location of the bot help file')
+        case 'Help':
+            sendHelp()
             break;
         default:
-            bot.sendMessage(chatId, 'Invalid command')
+            bot.sendMessage(chatId, 'Invalid command - please use help if needed')
             break;
     }
 

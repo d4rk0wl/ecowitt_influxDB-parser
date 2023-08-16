@@ -131,3 +131,5 @@ dist
 
 #Workplace Settings
 .vscode
+Buffer
+Logs/*

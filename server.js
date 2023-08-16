@@ -62,7 +62,6 @@ app.post('/report', (req, res) => {
 
             //Write data and close connection
             await writeApi.writePoints(pointsArray)
-            console.log('here')
             writeApi.close()
             return
         } catch(err) {
