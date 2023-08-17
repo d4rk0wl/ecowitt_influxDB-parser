@@ -8,7 +8,7 @@ const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, {polling: {interval: 500
 const writeBuffer = (measurements) => {
     const date = new Date()
 
-    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = measurements
+    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3, batt1, batt2, batt3 } = measurements
 
     const bufferData = {
         "Time": date.toISOString(), 
@@ -34,7 +34,10 @@ const writeBuffer = (measurements) => {
         "RainRate": rrain_piezo,
         "DailyRain": drain_piezo,
         "CapacitorVoltage": ws90cap_volt,
-        "BatteryVoltage": wh90batt
+        "BatteryVoltage": wh90batt,
+        "Channel1Status": batt1,
+        "Channel2Status": batt2,
+        "Channel3Status": batt3
     }
 
     fs.writeFileSync(__dirname + '/../Buffer/last.json', JSON.stringify(bufferData), (err) => console.log(err))
@@ -82,11 +85,16 @@ const generateReport = (options) => {
     const addStatus = () => {
         table.addRow('Capacitor Voltage', '-', `${data.CapacitorVoltage} V`)
         table.addRow('Battery Voltage', '-', `${data.BatteryVoltage} V`)
+        table.addRow('Channel 1', 'Kitchen', `${data.batt1}`)
+        table.addRow('Channel 2', 'Office', `${data.batt2}`)
+        table.addRow('Channel 3', 'Bedroom', `${data.batt3}`)
+
     }
 
+    let type = options.charAt(0).toUpperCase() + options.slice(1)
     return new Promise((Resolve, Reject) => {
-        switch(options) {
-            case 'all':
+        switch(type) {
+            case 'All':
                 addTemperature()
                 addHumidity()
                 addWind()
@@ -96,8 +104,13 @@ const generateReport = (options) => {
 
                 Resolve(table)
                 break;
-            case 'temperature':
+            case 'Temperature':
                 addTemperature()
+
+                Resolve(table)
+                break;
+            case 'Status':
+                addStatus()
 
                 Resolve(table)
                 break;
@@ -142,7 +155,7 @@ const generateForecast = async (options) => {
                 })
                 return table
                 break;
-            case "Temps":
+            case "Temperature":
                 table.setHeading('Date', 'High', 'Low', 'Sky')
                 data.daily.forEach((day) => {
                     let date = new Date(day.dt * 1000)

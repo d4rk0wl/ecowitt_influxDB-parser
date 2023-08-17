@@ -29,7 +29,7 @@ app.post('/report', (req, res) => {
     const bucket = process.env.INFLUX_BUCKET
 
     //Destructure POST request and write to buffer
-    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = req.body
+    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3, batt1, batt2, batt3 } = req.body
     telegram.writeBuffer(req.body)
 
     //Create InfluxDB points and assign array
@@ -52,7 +52,10 @@ app.post('/report', (req, res) => {
         new Point('Rain Rate').tag('sensor','WS90').floatField('value', rrain_piezo),
         new Point('Daily Rain').tag('sensor','WS90').floatField('value', drain_piezo),
         new Point('Capacitor Voltage').tag('sensor','WS90').floatField('value', ws90cap_volt),
-        new Point('Battery Voltage').tag('sensor','WS90').floatField('value', wh90batt)
+        new Point('Battery Voltage').tag('sensor','WS90').floatField('value', wh90batt),
+        new Point('Channel-1 Status').tag('sensor', 'WN31').tag('location','Kitchen').intField('value', batt1),
+        new Point('Channel-2 Status').tag('sensor', 'WN31').tag('location','Office').intField('value', batt2),
+        new Point('Channel-3 Status').tag('sensor', 'WN31').tag('location','Bedroom').intField('value', batt3),
     ]
 
     const writePoints = async () => {
