@@ -83,11 +83,11 @@ const generateReport = (options) => {
     }
 
     const addStatus = () => {
-        table.addRow('Capacitor Voltage', '-', `${data.CapacitorVoltage} V`)
-        table.addRow('Battery Voltage', '-', `${data.BatteryVoltage} V`)
-        table.addRow('Channel 1', 'Kitchen', `${data.batt1}`)
-        table.addRow('Channel 2', 'Office', `${data.batt2}`)
-        table.addRow('Channel 3', 'Bedroom', `${data.batt3}`)
+        table.addRow('Capacitor Voltage', 'Outdoors', `${data.CapacitorVoltage} V`)
+        table.addRow('Battery Voltage', 'Outdoors', `${data.BatteryVoltage} V`)
+        table.addRow('Channel 1 Batt', 'Kitchen', `${data.Channel1Status}`)
+        table.addRow('Channel 2 Batt', 'Office', `${data.Channel2Status}`)
+        table.addRow('Channel 3 Batt', 'Bedroom', `${data.Channel3Status}`)
 
     }
 
