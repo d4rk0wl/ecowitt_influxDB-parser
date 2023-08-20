@@ -5,24 +5,32 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 
+//Let Local Timezone
+process.env.TZ = 'America/Los_Angeles'
+
+//Custom modules import
+const telegram = require('./controllers/telegram')
+
 //Setting to ignore self-signed CA on InfluxDB Server - Maybe dangerous
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 const app = express()
-const port = 3000
+const port = 9091
 
 //EcoWitt protocol uses URLEncoded form data
 app.use(bodyParser.urlencoded({ extended: true }))
 
 app.post('/report', (req, res) => {
+
     //InfluxDB Environment Variables
     const url = process.env.INFLUX_HOST
     const token = process.env.INFLUX_TOKEN
     const org = process.env.INFLUX_ORG
     const bucket = process.env.INFLUX_BUCKET
 
-    //Destructure POST request
-    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3 } = req.body
+    //Destructure POST request and write to buffer
+    const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3, batt1, batt2, batt3 } = req.body
+    telegram.writeBuffer(req.body)
 
     //Create InfluxDB points and assign array
     const pointsArray = [
@@ -44,7 +52,10 @@ app.post('/report', (req, res) => {
         new Point('Rain Rate').tag('sensor','WS90').floatField('value', rrain_piezo),
         new Point('Daily Rain').tag('sensor','WS90').floatField('value', drain_piezo),
         new Point('Capacitor Voltage').tag('sensor','WS90').floatField('value', ws90cap_volt),
-        new Point('Battery Voltage').tag('sensor','WS90').floatField('value', wh90batt)
+        new Point('Battery Voltage').tag('sensor','WS90').floatField('value', wh90batt),
+        new Point('Channel-1 Status').tag('sensor', 'WN31').tag('location','Kitchen').intField('value', batt1),
+        new Point('Channel-2 Status').tag('sensor', 'WN31').tag('location','Office').intField('value', batt2),
+        new Point('Channel-3 Status').tag('sensor', 'WN31').tag('location','Bedroom').intField('value', batt3),
     ]
 
     const writePoints = async () => {
@@ -54,7 +65,7 @@ app.post('/report', (req, res) => {
 
             //Write data and close connection
             await writeApi.writePoints(pointsArray)
-            await writeApi.close()
+            writeApi.close()
             return
         } catch(err) {
             throw new Error(err)
@@ -67,9 +78,13 @@ app.post('/report', (req, res) => {
     .catch((err) => {
         fs.appendFileSync(__dirname + '/Logs/Err_Log.txt', `\n${new Date().toString()} - ${err}`)
         res.status(500).send(`${err}`)
-    })
+    });
 
 });
+
+app.get('/healthcheck', (req, res) => {
+    res.send('OK')
+})
 
 app.listen(port, () => {
     console.log('App Running')
