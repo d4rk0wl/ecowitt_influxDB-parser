@@ -47,7 +47,7 @@ const generateReport = (options) => {
     data = JSON.parse(fs.readFileSync(__dirname + '/../Buffer/last.json', {encoding: 'utf-8', flag: 'r'}));
     date = new Date(data.Time)
 
-    let table = new AsciiTable(`Weather Report - ${date.toLocaleString('en-US')}`)
+    let table = new AsciiTable(`Wx Report - ${date.toLocaleString('en-US')}`)
     table.setHeading('Metric', 'Location', 'Value')
 
     const addTemperature = () => {
