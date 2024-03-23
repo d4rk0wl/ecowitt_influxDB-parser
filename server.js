@@ -1,17 +1,14 @@
-//Import all required packages
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const bodyParser = require('body-parser');
 const { InfluxDB, Point } = require('@influxdata/influxdb-client');
 
-//Let Local Timezone
 process.env.TZ = 'America/Los_Angeles'
 
-//Custom modules import
 const telegram = require('./controllers/telegram')
 
-//Setting to ignore self-signed CA on InfluxDB Server - Maybe dangerous
+//Trust internal CA certificate from InfluxDB server
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 const app = express()
@@ -22,17 +19,15 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 app.post('/report', (req, res) => {
 
-    //InfluxDB Environment Variables
     const url = process.env.INFLUX_HOST
     const token = process.env.INFLUX_TOKEN
     const org = process.env.INFLUX_ORG
     const bucket = process.env.INFLUX_BUCKET
 
-    //Destructure POST request and write to buffer
     const { tempinf, humidityin, tempf, humidity, winddir, windspeedmph, windgustmph, solarradiation, uv, rrain_piezo, drain_piezo, ws90cap_volt, wh90batt, temp1f, humidity1, temp2f, humidity2, temp3f, humidity3, batt1, batt2, batt3 } = req.body
     telegram.writeBuffer(req.body)
 
-    //Create InfluxDB points and assign array
+    //Update this to contain your information
     const pointsArray = [
         new Point('Temperature').tag('location','Living Room').tag('sensor','GW1100').floatField('value', tempinf),
         new Point('Humidity').tag('location','Living Room').tag('sensor','GW1100').floatField('value', humidityin),
@@ -60,10 +55,8 @@ app.post('/report', (req, res) => {
 
     const writePoints = async () => {
         try {
-            //Create InfluxDB connection
             const writeApi = new InfluxDB({ url, token }).getWriteApi(org, bucket, 's')
 
-            //Write data and close connection
             await writeApi.writePoints(pointsArray)
             writeApi.close()
             return
@@ -72,7 +65,6 @@ app.post('/report', (req, res) => {
         }
     }
 
-    //Write points to DB, or log if error encountered
     writePoints()
     .then(() => res.send('OK'))
     .catch((err) => {
@@ -82,7 +74,8 @@ app.post('/report', (req, res) => {
 
 });
 
-app.get('/healthcheck', (req, res) => {
+app.post('/healthcheck', (req, res) => {
+    console.log(req.body)
     res.send('OK')
 })
 
